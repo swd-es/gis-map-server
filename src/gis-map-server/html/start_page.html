@@ -1,0 +1,165 @@
+<html>
+  <head>
+    <title></title>
+    <meta content="">
+    <style>
+    .params_frame {
+        width: 200px;
+        padding: 10px;
+        float: left;
+        border: 1px solid black;
+        margin: 7px; 
+    }
+    .results_frame {
+        width: calc(100% - 288px);
+        height: calc(100vh - 58px );
+        float: left;
+        border: 1px solid black;
+        margin: 7px; 
+        overflow: scroll;
+    }
+    </style>
+        <script>
+            function new_req() {
+            
+                var lat = document.getElementById("lat").value;
+                var lon = document.getElementById("lon").value;
+                var lon = document.getElementById("lon").value;
+                var scale = document.getElementById("scale").value;
+                var h = document.getElementById("h").value;
+                var w = document.getElementById("w").value;
+                var format = document.getElementById("format").value;
+            
+                document.getElementById('but').disabled = true;
+            
+                if (document.contains(document.getElementById("frame_id"))) {
+                    document.getElementById("frame_id").remove();
+                } 
+
+                const iframe = document.createElement('iframe');
+                iframe.id = "frame_id";
+                iframe.scrolling = "no";
+                iframe.style = "border: 0px;"
+                document.getElementById('results').appendChild(iframe);
+
+                res = send_req(lat, lon, scale, w, h, format);
+
+                if (res[2] == '200') 
+                {
+                    show_content('Processing...')
+                    
+                    counter = 0
+                    var interval_poll = window.setInterval(function()
+                    {
+                        answer = get_ord(res[0], res[1])
+                        
+                        if (answer[1] == 200)
+                        {
+                            clearInterval(interval_poll);
+                            iframe.height = h;
+                            iframe.width = w;
+                            iframe.src = 'http://ADDRESS:PORT/?orderId=' + res[0] + '&pincode=' + res[1];
+                            document.getElementById('but').disabled = false;
+                        }
+                        else if (answer[1] == 202)
+                        {
+                            show_content('Processing... ' + answer[1])
+                        } 
+                        else
+                        {
+                            clearInterval(interval_poll);
+                            iframe.srcdoc = answer[2];
+                            document.getElementById('but').disabled = false;
+                        }
+                    }, 100);
+                }
+                else
+                {
+                    show_content('<p> <font color="red"> Error code obtained from server (' + res[2] + ')  </font> </p>')
+                    document.getElementById('but').disabled = false;
+                }
+            }
+            
+            function show_content(cont){
+                document.getElementById('frame_id').src = "data:text/html;charset=utf-8," + escape(cont);
+            }
+            
+            function send_req(lat, lon, scale, w, h, format) {
+                const url = 'http://ADDRESS:PORT/?lat='+  lat + '&lon=' + lon + '&scale=' + scale + '&w=' + w +'&h=' + h + '&format=' + format
+                res = http_get(url)
+                id = res[0].match('Order id = (.*?),')
+                pincode = res[0].match('pincode = (.*?)<')
+                if (id != null && pincode != null)
+                {
+                    id = id[1]
+                    pincode = pincode[1]
+                }
+                return  [id, pincode, res[1]];
+            }
+            
+            function get_ord(id, pincode) {
+                const url = 'http://ADDRESS:PORT/?orderId=' + id + '&pincode=' + pincode
+                return http_get(url);
+            }
+            
+            function http_get(url)
+            {
+                var xhr = new XMLHttpRequest();
+                xhr.open( "GET", url, false);
+                xhr.send( null );
+                return [xhr.responseText, xhr.status, xhr.response]
+            }
+        </script>
+  </head>
+  <body>
+    <div class="params_frame">
+        <form action="">
+            <table>
+            <tr>
+                <td>
+                    <label for="lat">Latitude</label>
+                <td>
+                    <input name="lat" id="lat" size="7" value="55.4798">
+            </tr>
+            <tr>
+                <td>
+                    <label for="lon">Longitude</label>
+                <td>
+                    <input name="lon" id="lon" size="7" value="37.754">
+            </tr>
+            <tr>
+                <td>
+                    <label for="scale">Scale</label>
+                <td>
+                    <input name="scale" id="scale" size="7" value="10700">
+            </tr>
+            <tr>
+                <td>
+                    <label for="w">Width</label>
+                <td>
+                    <input name="w" id="w" size="7" value="1000">
+            </tr>
+            <tr>
+                <td>
+                    <label for="h">Height</label>
+                <td>
+                    <input name="h" id="h" size="7" value="1000">
+            </tr>
+            <tr>
+                <td>
+                    <label for="format">Format</label>
+                <td>
+                    <input name="format" id="format" size="7" value="png">
+            </tr>
+            </table>
+            <BR>
+            <div>
+                <center> <input type="button" value="Send request" id="but" onclick="new_req()"> </center>
+            </div>
+        </form>
+    </div>
+    <div class="results_frame" id="results">
+        
+    </div>
+  </body>
+</html>

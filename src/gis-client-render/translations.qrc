@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>translations/gis-client-render_ru.qm</file>
+    </qresource>
+</RCC>
